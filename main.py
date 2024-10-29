@@ -12,12 +12,12 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 @app.post("/generate_pdf/")
 async def generate_pdf(
     request: Request,
-    id: int,
+    id: str,
     file: UploadFile = File(...)
 ):
-    # Verificar el origen de la solicitud
-    if request.client.host != "127.0.0.1" or request.client.port != 8080:
-        raise HTTPException(status_code=403, detail="Request origin not allowed")
+    # # Verificar el origen de la solicitud
+    # if request.client.host != "127.0.0.1" or request.client.port != 8080:
+    #     raise HTTPException(status_code=403, detail="Request origin not allowed")
     
     # Generar un PDF vacío
     pdf_path = os.path.join(TEMP_DIR, f"{id}.pdf")
