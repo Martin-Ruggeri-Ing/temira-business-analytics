@@ -1,12 +1,18 @@
 # main.py
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from uuid import UUID
-from response import FileUploadResponse
 import pandas as pd
+
+from pydantic import BaseModel
+
+class FileUploadResponse(BaseModel):
+    message: str
+    file_name: str
+    id: str
 
 app = FastAPI()
 
-@app.post("/upload-csv", response_model=FileUploadResponse)
+@app.post("/generate_pdf", response_model=FileUploadResponse)
 async def upload_csv(id: UUID = Form(...), csv_file: UploadFile = File(...)):
     # Validar el tipo de archivo
     if csv_file.content_type != "text/csv":

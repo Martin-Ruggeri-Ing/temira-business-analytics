@@ -1,31 +1,44 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
-from fastapi.responses import FileResponse
-from fpdf import FPDF
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from uuid import UUID
+import pandas as pd
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 import os
 
 app = FastAPI()
 
-# Directorio para guardar PDFs generados temporalmente
-TEMP_DIR = "temp_pdfs"
-os.makedirs(TEMP_DIR, exist_ok=True)
-
-@app.post("/generate_pdf/")
-async def generate_pdf(
-    request: Request,
-    id: str,
-    file: UploadFile = File(...)
-):
-    # # Verificar el origen de la solicitud
-    # if request.client.host != "127.0.0.1" or request.client.port != 8080:
-    #     raise HTTPException(status_code=403, detail="Request origin not allowed")
+@app.post("/generate_pdf")
+async def upload_csv(id: UUID = Form(...), csv_file: UploadFile = File(...)):
+    # Validar el tipo de archivo
+    if csv_file.content_type != "text/csv":
+        raise HTTPException(status_code=400, detail="El archivo debe ser un CSV")
     
-    # Generar un PDF vacío
-    pdf_path = os.path.join(TEMP_DIR, f"{id}.pdf")
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"PDF generated for ID: {id}", ln=True, align="C")
-    pdf.output(pdf_path)
+    # Leer el contenido del archivo
+    try:
+        df = pd.read_csv(csv_file.file)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al leer el CSV: {str(e)}")
+    
+    # Crear el contenido del PDF usando el encabezado del CSV
+    pdf_buffer = BytesIO()
+    pdf = canvas.Canvas(pdf_buffer, pagesize=letter)
+    pdf.drawString(100, 750, "Encabezado del CSV:")
+    headers = ", ".join(df.columns)
+    pdf.drawString(100, 730, headers)
+    pdf.save()
+    pdf_buffer.seek(0)
+    
+    # Generar el nombre del PDF a partir del nombre del CSV
+    pdf_filename = os.path.splitext(csv_file.filename)[0] + ".pdf"
 
-    # Devolver el archivo PDF generado
-    return FileResponse(pdf_path, media_type="application/pdf", filename=f"{id}.pdf")
+    # Enviar el PDF como respuesta usando StreamingResponse
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={pdf_filename}",
+            "X-File-ID": str(id)
+        }
+    )
