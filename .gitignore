@@ -2,3 +2,5 @@ venv
 __pycache__
 *.pyc
 *.pyo
+clave_privada.pem
+clave_publica.pem
