@@ -4,3 +4,8 @@ __pycache__
 *.pyo
 clave_privada.pem
 clave_publica.pem
+temp_csvs/
+temp_pdfs/
+__pycache__/
+*.pyc
+*.pdf
